@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Скрининговая батарея: 6 шкал</title>
+<style>
+  :root { --accent:#2b6cb0; --ok:#2f855a; --warn:#b7791f; }
+  * { box-sizing:border-box; }
+  body { font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif; margin:0; background:#f4f6f8; color:#1a202c; line-height:1.45; }
+  header { background:#2b6cb0; color:#fff; padding:18px 16px; }
+  header h1 { margin:0 0 6px; font-size:1.25rem; }
+  header p { margin:0; font-size:.9rem; opacity:.9; }
+  main { max-width:760px; margin:0 auto; padding:14px; }
+  .card { background:#fff; border-radius:12px; box-shadow:0 1px 4px rgba(0,0,0,.08); padding:16px; margin-bottom:16px; }
+  .card h2 { font-size:1.05rem; margin:0 0 4px; color:var(--accent); }
+  .instr { font-size:.9rem; color:#4a5568; margin:4px 0 12px; }
+  .q { border-top:1px solid #edf0f3; padding:10px 0; }
+  .q:first-of-type { border-top:none; }
+  .q .qt { font-weight:600; margin-bottom:6px; font-size:.95rem; }
+  .q .num { color:#8a97a5; font-weight:400; margin-right:4px; }
+  .opts { display:flex; flex-wrap:wrap; gap:6px 14px; }
+  .opts label { font-size:.88rem; cursor:pointer; display:flex; align-items:center; gap:4px; }
+  .subrow { margin:8px 0 0 18px; padding:8px 10px; background:#f7f9fb; border-radius:8px; font-size:.88rem; }
+  .subrow b { display:block; margin-bottom:4px; }
+  .btn { background:var(--accent); color:#fff; border:none; border-radius:8px; padding:10px 18px; font-size:.95rem; cursor:pointer; margin-top:12px; }
+  .btn.secondary { background:#e2e8f0; color:#2d3748; }
+  .result { margin-top:12px; padding:10px 14px; border-radius:8px; display:none; font-size:.92rem; }
+  .result.show { display:block; }
+  .result.ok { background:#e6f4ea; border:1px solid #9cd2b2; color:#22543d; }
+  .result.warn { background:#fdf3e0; border:1px solid #ecd39f; color:#7b5a12; }
+  .result.alert { background:#fdecec; border:1px solid #f2b3b3; color:#742a2a; }
+  .note { font-size:.85rem; color:#718096; margin-top:8px; }
+  .memo { background:#ebf4fb; border-left:4px solid var(--accent); padding:10px 14px; border-radius:0 8px 8px 0; font-size:.88rem; }
+  table { width:100%; border-collapse:collapse; font-size:.88rem; margin-top:10px; }
+  th,td { border:1px solid #dce2e8; padding:6px 8px; text-align:left; }
+  th { background:#f0f4f8; }
+  .profile { margin-top:12px; padding:12px; border-radius:8px; background:#f0f4f8; font-size:.92rem; }
+  #copyArea { width:100%; height:110px; margin-top:10px; font-size:.85rem; display:none; }
+  @media print { .btn, .noprint { display:none !important; } body { background:#fff; } .card { box-shadow:none; border:1px solid #ccc; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Скрининговая батарея: 6 шкал</h1>
+  <p>ASRS v1.1 · WURS-25 · MDQ · HCL-32 · PHQ-9 · PDI-21 — подсчёт локальный, данные никуда не отправляются</p>
+</header>
+<main>
+  <div class="card">
+    <div class="memo">
+      <b>Памятка.</b> Скрининг — это не диагноз. Положительный результат означает лишь, что есть основание обсудить ситуацию с врачом. Ответы обрабатываются на вашем устройстве и никуда не передаются. Вводите имя или код по желанию — оно нужно только для подписи итога.
+    </div>
+    <p style="margin-top:10px"><b>Имя или код участника:</b><br><input id="pname" type="text" style="width:100%;padding:8px;border:1px solid #cbd5e0;border-radius:8px;margin-top:6px"></p>
+  </div>
+
+  <div id="scales"></div>
+
+  <div class="card">
+    <h2>Сводный результат</h2>
+    <p class="instr">Нажмите кнопку, когда будут подсчитаны все шесть шкал.</p>
+    <button class="btn" id="btnSummary">Показать сводный результат</button>
+    <button class="btn secondary" id="btnCopy">Скопировать результат в буфер</button>
+    <div id="summaryBox"></div>
+    <textarea id="copyArea" readonly></textarea>
+    <div class="note">Отдельно о PHQ-9: если отмечен пункт 9 (мысли о смерти или самоповреждении), это повод для разговора со специалистом независимо от общего балла.</div>
+  </div>
+
+  <div class="card">
+    <div class="memo">
+      <b>Пороги шкал.</b> ASRS — 4 и более из 6. WURS-25 — сумма ≥ 36 (скрининг) / ≥ 46 (высокая специфичность). MDQ — 7+ «Да» + «Да» на одновременность + умеренные или серьёзные проблемы. HCL-32 — 14 и более «Да». PHQ-9 — сумма 0–27: 0–4 минимальная, 5–9 лёгкая, 10–14 умеренная, 15–19 умеренно тяжёлая, 20–27 тяжёлая. PDI-21 — единого порога нет; сравнение со средними: «Да» — 6,7 в норме против 11,9 у клинических пациентов.
+    </div>
+  </div>
+</main>
+
+<script>
+const DATA = {"asrs": {"title": "1. ASRS v1.1 — часть A (СДВГ у взрослых)", "instr": "Оцените, как часто вы испытывали перечисленное за последние 6 месяцев.", "period": "за последние 6 месяцев", "opts": ["Никогда", "Редко", "Иногда", "Часто", "Очень часто"], "items": ["Как часто у вас бывают проблемы с тем, чтобы не откладывать выполнение заданий и завершить работу в срок?", "Как часто вам бывает не по себе из-за того, насколько вы неаккуратны или невнимательны при выполнении работы или другой рутинной деятельности?", "Как часто у вас бывают проблемы с тем, что вы не слушаете других, когда они говорят с вами напрямую?", "Как часто вы оставляете незавершённым рабочее задание, когда жизнь вынуждает вас перейти к следующему делу до того, как вы закончите предыдущее?", "Как часто вам бывает трудно что-то организовать (например, подготовиться к заданиям, упорядочить документы, сгруппировать отдельные записи)?", "Как часто вы избегаете, начинаете с задержкой или неохотно берётесь за рабочие задания, требующие длительного хода рассуждений?"]}, "wurs": {"title": "2. WURS-25 (симптомы СДВГ в детстве)", "instr": "Вспомните себя в возрасте 6–10 лет. Насколько выраженными были следующие качества?", "period": "в возрасте 6–10 лет", "opts": ["Совсем нет / почти нет (0)", "Слегка (1)", "Умеренно (2)", "Довольно сильно (3)", "Очень сильно (4)"], "items": ["Вспыльчивость, плохой характер", "Непослушный, упрямый, непреклонный", "Раздражительный, легко расстраивался", "Начинал много дел, часто отвлекался", "Настроение быстро менялось", "Придирающийся, надоедливый", "Склонный к мечтам и фантазиям", "Чрезмерно активный, суетливый", "Легко отвлекался", "Возбудимый, импульсивный", "Чувствительный, обидчивый", "Не мог сосредоточиться, невнимательный", "Попадал в неприятности, доставлял проблемы", "Забывчивый, рассеянный", "Неуклюжий, неловкий", "Открыто непослушный, дерзкий", "Застенчивый, робкий", "Неохотно общался с другими", "Боялся нового", "Пугливый, боязливый", "Легко плакал, склонный к слезам", "Пассивный, безынициативный, ленивый", "Погружённый в себя", "Трудности с чтением", "Трудности с арифметикой (математикой)"]}, "mdq": {"title": "3. MDQ (скрининг биполярного спектра)", "instr": "Было ли у вас когда-либо состояние, когда... Отвечайте «Да», если такое состояние длилось не меньше нескольких дней подряд.", "period": "когда-либо", "opts": ["Нет", "Да"], "items": ["Настроение было настолько приподнятым, что даже чужие люди замечали это, или настолько раздражительным, что вы ссорились с окружающими?", "Из-за настроения вы спали значительно меньше обычного, но при этом не чувствовали усталости?", "Вам казалось, что вы говорите быстрее обычного, и вы говорили больше?", "Мысли «летели», перескакивали с одной темы на другую?", "Вы легко отвлекались и не могли сосредоточиться?", "Появлялось ощущение, что вы можете сделать больше дел, чем обычно (были более продуктивны в работе или учёбе, стали чаще звонить друзьям)?", "Появлялось больше желания веселиться (вечеринки, мероприятия) или больше интереса к сексу?", "Вам казалось, что вы делаете несколько дел одновременно?", "Вы делали то, что обычно не свойственно вам, и это удивляло окружающих?", "Вы тратили деньги так, что это создавало проблемы вам или вашей семье?", "Окружающие говорили, что вы слишком переусердствуете (поведение не было злым или намеренно вредным)?", "Вам казалось, что у вас заметно больше энергии и мотивации, чем обычно?", "Возникали трудности на работе, учёбе или дома из-за описанного состояния?"], "ctrl1": "Если вы отметили «Да» более чем на один вопрос выше — происходили ли эти эпизоды одновременно?", "ctrl1_opts": ["Да", "Нет"], "ctrl2": "Как это состояние отражалось на работе, учёбе, отношениях с людьми?", "ctrl2_opts": ["Не было проблем (0)", "Незначительные проблемы (1)", "Умеренные проблемы (2)", "Серьёзные проблемы (3)"], "ctrl3": "Проверял ли когда-либо специалист (врач, психолог) налич��е у вас биполярного расстройства?", "ctrl3_opts": ["Нет", "Да"]}, "hcl": {"title": "4. HCL-32 (скрининг гипомании)", "instr": "Бывало ли у вас состояние, когда вы... Отметьте «Да», если переживали это в период подъёма.", "period": "в период подъёма", "opts": ["Нет", "Да"], "items": ["Меньше потребность во сне", "Больше энергии и активности", "Более общительны и разговорчивы (иногда даже навязчивы, нетерпеливы)", "Более активны в сексуальной жизни", "Делаете несколько дел одновременно", "Более говорливы, быстрее говорите, играете словами", "Легко отвлекаетесь, внимание перескакивает с одной темы на другую", "Появляется больше планов на будущее и больше новых идей", "Проявляете больше энтузиазма и оптимизма или преувеличиваете свою самооценку", "Больше тратите денег и/или берёте деньги взаймы", "Растерянность/смущённость, когда кто-то не разделяет вашу точку зрения, или раздражительность, когда отговаривают от ваших планов", "Повышение драйва (мотивации, стремления)", "Ускоряется мышление, мысли «мчатся"", "Речь становится быстрее, чем обычно, иногда трудно остановиться", "Шутки, каламбуры, остроты, необычные для окружающих", "Повышенное настроение, весёлость, эйфория", "Чрезмерная вовлечённость в деятельность (работа, спорт, хобби)", "Непреклонность, упрямство", "Легко раздражаетесь", "Придирчивость, иррациональные конфликты с окружающими", "Повышенная работоспособность", "Ощущение «заряженности», бодрости", "Смелость, предприимчивость, дерзость", "Более импульсивны", "Более склонны «налетать» на людей, критиковать их", "Возрастающая «моторная» активность и внутреннее напряжение", "Риск при вождении (не учитываете скорость и т. п.)", "Более расточительны (траты, кредиты, покупки, необдуманные вложения)", "Лёгкость при использовании телефонов (больше звонков)", "Не соблюдаете социальные нормы и правила поведения (перебиваете говорящих, переходите дорогу в неположенном месте)", "Используете больше средств, чем обычно (деньги, кредиты)", "Более фривольны и флиртуете больше обычного"]}, "phq": {"title": "5. PHQ-9 (депрессия)", "instr": "Как часто за последние 2 недели вас беспокоили перечисленные проблемы?", "period": "за последние 2 недели", "opts": ["Совсем нет (0)", "Несколько дней (1)", "Более половины дней (2)", "Почти каждый день (3)"], "items": ["Мало интересовались или не получали удовольствия от занятий", "Чувствовали себя подавленными, грустными или в плохом настроении", "Плохо засыпали, спали беспокойно или спали слишком много", "Чувствовали себя уставшими или с недостатком энергии", "Плохо ели или ели слишком много", "Чувствовали, что вы плохой человек или что вы подводили себя или свою семью", "Возникали проблемы с концентрацией внимания, например при чтении или просмотре телевизора", "Двигались или говорили так медленно, что это замечали окружающие, или наоборот — были беспокойны, не могли усидеть на месте", "Появлялись мысли, что лучше было бы умереть или что можно как-то причинить себе вред"], "q10": "Если у вас наблюдались какие-либо из перечисленных выше проблем — насколько они затрудняли работу, повседневные дела и общение с людьми?", "q10_opts": ["Совсем не затрудняли", "Несколько затрудняли", "Значительно затрудняли", "Крайне затрудняли"]}, "pdi": {"title": "6. PDI-21 (бредовая настроенность)", "instr": "Отмечали ли вы когда-либо подобное? Если «Да» — оцените три измерения: дистресс, поглощённость и убеждённость.", "period": "когда-либо", "opts": ["Нет", "Да"], "items": ["У меня есть убеждения, которые другие люди не разделяют", "Окружающие могут счесть некоторые мои убеждения странными и необычными", "Окружающие не принимают мои убеждения всерьёз", "Мне казалось, что мне могут передаваться особые послания через номера, знаки или символы", "Мне казалось, что окружающие могут читать мои мысли", "Мне казалось, что кто-то вкладывает в мою голову мысли, которые не являются моими собственными", "Мне казалось, что люди на работе, учёбе или в моём окружении говорят обо мне за моей спиной", "Мне казалось, что за мной следят незнакомые люди", "Мне казалось, что я могу шпионить за людьми", "Мне казалось, что против меня замышляют заговор", "Мне казалось, что мною управляет какая-то невидимая сила", "Мне казалось, что у меня есть особые способности", "Мне казалось, что меня преследуют или хотят причинить мне вред", "Мне казалось, что у меня есть особая миссия или предназначение", "Мне казалось, что я не существую, будто меня нет", "Мне казалось, что человек, которого я встречал, на самом деле является кем-то другим, изменившим облик", "Мне казалось, что звуки или цвета имеют для меня особое значение", "Мне казалось, что я могу общаться с умершими людьми", "Мне казалось, что события в мире происходят из-за меня", "У меня бывают суеверные мысли, например, что я могу быть одержим", "Мне казалось, что по телевизору или радио мне передают скрытые сообщения, которые относятся лично ко мне"], "sub_labels": ["Дистресс (насколько это беспокоило)", "Поглощённость (насколько занимало мысли)", "Убеждённость (насколько были уверены)"], "sub_opts": ["Нисколько (1)", "Немного (2)", "Умеренно (3)", "Сильно (4)", "Очень сильно (5)"]}};
+const RES = {};
+
+function esc(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+function optsHtml(name, opts, vals){
+  let h = '<div class="opts">';
+  for (let i=0;i<opts.length;i++){
+    const v = vals ? vals[i] : i;
+    h += '<label><input type="radio" name="'+name+'" value="'+v+'"> '+esc(opts[i])+'</label>';
+  }
+  return h + '</div>';
+}
+
+function build(){
+  const root = document.getElementById('scales');
+  let htmlAll = '';
+  for (const id in DATA){
+    const s = DATA[id];
+    htmlAll += '<div class="card" id="card_'+id+'"><h2>'+esc(s.title)+'</h2><p class="instr">'+esc(s.instr)+'</p>';
+    s.items.forEach((t, i)=>{
+      htmlAll += '<div class="q"><div class="qt"><span class="num">'+(i+1)+'.</span>'+esc(t)+'</div>';
+      htmlAll += optsHtml(id+'_q'+i, s.opts, s.vals);
+      if (id==='pdi'){
+        htmlAll += '<div class="subrow" id="pdi_sub'+i+'" style="display:none">';
+        s.sub_labels.forEach((lab, j)=>{
+          htmlAll += '<b>'+esc(lab)+'</b>'+optsHtml('pdi_sub'+j+'_q'+i, s.sub_opts);
+        });
+        htmlAll += '</div>';
+      }
+      htmlAll += '</div>';
+    });
+    if (s.ctrl1) htmlAll += '<div class="q"><div class="qt">'+esc(s.ctrl1)+'</div>'+optsHtml('mdq_ctrl1', s.ctrl1_opts)+'</div>';
+    if (s.ctrl2) htmlAll += '<div class="q"><div class="qt">'+esc(s.ctrl2)+'</div>'+optsHtml('mdq_ctrl2', s.ctrl2_opts)+'</div>';
+    if (s.ctrl3) htmlAll += '<div class="q"><div class="qt">'+esc(s.ctrl3)+'</div>'+optsHtml('mdq_ctrl3', s.ctrl3_opts)+'</div>';
+    if (s.q10)   htmlAll += '<div class="q"><div class="qt">'+esc(s.q10)+'</div>'+optsHtml('phq_q10', s.q10_opts)+'</div>';
+    htmlAll += '<button class="btn noprint" onclick="score(\''+id+'\')">Подсчитать</button><div class="result" id="res_'+id+'"></div>';
+    htmlAll += '<details class="note"><summary>Как считается</summary><p>'+HOW[id]+'</p></details>';
+    htmlAll += '</div>';
+  }
+  root.innerHTML = htmlAll;
+  // раскрытие подшкал PDI
+  for (let i=0;i<DATA.pdi.items.length;i++){
+    (function(i){
+      const rads = document.querySelectorAll('input[name="pdi_q'+i+'"]');
+      rads.forEach(r=>{
+        r.addEventListener('change', function(){
+          document.getElementById('pdi_sub'+i).style.display = (this.value==='1') ? 'block' : 'none';
+        });
+      });
+    })(i);
+  }
+}
+
+const HOW = {
+  asrs: 'Считаются ответы «Иногда» и выше для вопросов 1–3 и «Часто» и выше для вопросов 4–6. 4 и более подсчитанных ответов — положительный скрининг.',
+  wurs: 'Сумма баллов от 0 до 100. ≥36 — основание для углублённой оценки; ≥46 — более специфичный порог.',
+  mdq: '7 и более «Да», плюс «Да» на одновременность эпизодов и не ниже «умеренных проблем» — положительный скрининг.',
+  hcl: '14 и более «Да» из 32 — основание для оценки биполярного спектра.',
+  phq: 'Сумма 0–27 (вопрос о влиянии на работу и общение в балл не входит). Пункт 9 — отдельное предупреждение при любом ответе выше «Совсем нет».',
+  pdi: 'Считаются «Да» и три шкалы (дистресс, поглощённость, убеждённость; по 5–105 каждая). Единого порога нет — сравнение со средними значениями.'
+};
+
+function getVal(name){
+  const el = document.querySelector('input[name="'+name+'"]:checked');
+  return el ? el.value : null;
+}
+
+function show(id, cls, text){
+  const r = document.getElementById('res_'+id);
+  r.className = 'result show '+cls;
+  r.innerHTML = text;
+  RES[id] = {cls: cls, text: text.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim()};
+  window.scrollTo({top: r.getBoundingClientRect().top + window.pageYOffset - 20, behavior:'smooth'});
+}
+
+function score(id){
+  if (id==='asrs'){
+    let n=0, unanswered=false;
+    DATA.asrs.items.forEach((t,i)=>{
+      const v = getVal('asrs_q'+i);
+      if (v===null) unanswered=true; else if (parseInt(v,10) >= (i<3?2:3)) n++;
+    });
+    if (unanswered) return alert('Ответьте на все вопросы ASRS.');
+    show('asrs', n>=4?'warn':'ok', 'Подсчитано ответов: <b>'+n+' из 6</b>. '+(n>=4?'Порог 4 из 6 превышен — положительный скрининг, есть основание для углублённой оценки СДВГ.':'Ниже порога — по ASRS положительный скрининг не выявлен.'));
+  }
+  if (id==='wurs'){
+    let sum=0, unanswered=false;
+    DATA.wurs.items.forEach((t,i)=>{
+      const v = getVal('wurs_q'+i);
+      if (v===null) unanswered=true; else sum+=parseInt(v,10);
+    });
+    if (unanswered) return alert('Ответьте на все 25 пунктов WURS.');
+    let verdict = 'Ниже порога 36 — детских признаков, указывающих на СДВГ, мало.';
+    let cls='ok';
+    if (sum>=46){ verdict='Высокий уровень (≥46) — сильный сигнал по детской шкале.'; cls='warn'; }
+    else if (sum>=36){ verdict='Порог 36 превышен — положительный скрининг по детским годам.'; cls='warn'; }
+    show('wurs', cls, 'Сумма баллов: <b>'+sum+'</b> (пороги: 36 — скрининг, 46 — высокая специфичность). '+verdict);
+  }
+  if (id==='mdq'){
+    let yes=0, unanswered=false;
+    DATA.mdq.items.forEach((t,i)=>{
+      const v=getVal('mdq_q'+i);
+      if (v===null) unanswered=true; else yes+=parseInt(v,10);
+    });
+    const c1=getVal('mdq_ctrl1'), c2=getVal('mdq_ctrl2'), c3=getVal('mdq_ctrl3');
+    if (unanswered || c1===null || c2===null || c3===null) return alert('Ответьте на все вопросы MDQ, включая контрольные.');
+    const c1ok = c1==='0';
+    const c2ok = parseInt(c2,10)>=2;
+    const pos = yes>=7 && c1ok && c2ok;
+    show('mdq', pos?'warn':'ok',
+      '«Да» отмечено: <b>'+yes+' из 13</b> (нужно ≥7)'+(c1ok?' ✔':' ✘')+'; одновременность: '+c1ok+'; проблемы: '+c2ok+
+      '. '+(pos?'Все три условия выполнены — положительный скрининг биполярного спектра.':'Условия положительного скрининга не выполнены.')+
+      (c3==='1'?'<br>Отмечено, что специалист ранее уже проверял наличие биполярного расстройства — это важно упомянуть при консультации.':''));
+  }
+  if (id==='hcl'){
+    let n=0, unanswered=false;
+    DATA.hcl.items.forEach((t,i)=>{
+      const v=getVal('hcl_q'+i);
+      if (v===null) unanswered=true; else n+=parseInt(v,10);
+    });
+    if (unanswered) return alert('Ответьте на все 32 пункта HCL-32.');
+    show('hcl', n>=14?'warn':'ok', '«Да» отмечено: <b>'+n+' из 32</b>. '+(n>=14?'Порог 14 превышен — основание для оценки биполярного спектра (гипоманические эпизоды).':'Ниже порога 14.'));
+  }
+  if (id==='phq'){
+    let sum=0, q9=0, unanswered=false;
+    DATA.phq.items.forEach((t,i)=>{
+      const v=getVal('phq_q'+i);
+      if (v===null) unanswered=true; else { sum+=parseInt(v,10); if(i===8) q9=parseInt(v,10); }
+    });
+    const q10=getVal('phq_q10');
+    if (unanswered || q10===null) return alert('Ответьте на все вопросы PHQ-9, включая вопрос о влиянии на жизнь.');
+    let band='минимальная (0–4)', cls='ok';
+    if (sum>=20){ band='тяжёлая (20–27)'; cls='alert'; }
+    else if (sum>=15){ band='умеренно тяжёлая (15–19)'; cls='alert'; }
+    else if (sum>=10){ band='умеренная (10–14)'; cls='warn'; }
+    else if (sum>=5){ band='лёгкая (5–9)'; cls='warn'; }
+    let extra = q9>0 ? '<br><b>Внимание: отмечен пункт 9 (мысли о смерти или самоповреждении). Это требует отдельного разговора со специалистом независимо от общего балла.</b>' : '';
+    show('phq', cls, 'Сумма баллов: <b>'+sum+'</b> — тяжесть: '+band+'. Рекомендуемый уровень помощи: '+(sum>=20?'обратиться к психиатру/психотерапевту незамедлительно':(sum>=10?'консультация врача и/или психотерапия':(sum>=5?'наблюдение, при стойкости симптомов — консультация':'поводов для беспокойства по PHQ-9 нет.')))+extra);
+  }
+  if (id==='pdi'){
+    let yes=0, d=0,p=0,c=0, unanswered=false;
+    DATA.pdi.items.forEach((t,i)=>{
+      const v=getVal('pdi_q'+i);
+      if (v===null) unanswered=true;
+      else if (v==='1'){
+        yes++;
+        const dv=getVal('pdi_sub0_q'+i), pv=getVal('pdi_sub1_q'+i), cv=getVal('pdi_sub2_q'+i);
+        if (dv===null||pv===null||cv===null) unanswered=true;
+        else { d+=parseInt(dv,10); p+=parseInt(pv,10); c+=parseInt(cv,10); }
+      }
+    });
+    if (unanswered) return alert('Ответьте на все 21 пунктов PDI и на три оценки для каждого отмеченного «Да».');
+    const overYes = yes>=12;
+    const subs = [d,p,c].filter(x=>x>=45).length;
+    const signal = overYes || subs>=2;
+    show('pdi', signal?'warn':'ok',
+      '«Да» отмечено: <b>'+yes+'</b> (среднее в норме — 6,7; у клинических пациентов — 11,9).<br>'+
+      'Дистресс: <b>'+d+'</b> · Поглощённость: <b>'+p+'</b> · Убеждённость: <b>'+c+'</b> (макс. по 105).<br>'+
+      (signal ? 'Значения заметно превышают нормативные средние — стоит обсудить с психиатром в контексте общего состояния. Помните: PDI измеряет бредовую настроенность как континуум, а не наличие бреда.' : 'Значения сопоставимы с нормативными средними. Единого клинического порога у PDI нет — результат оценивается в контексте.'));
+  }
+}
+
+function completeAll(){
+  const missing=[];
+  const need={'asrs':6,'wurs':25,'mdq':13,'hcl':32,'phq':9,'pdi':21};
+  for (const id in need){
+    if (!RES[id]) missing.push(DATA[id].title);
+  }
+  return missing;
+}
+
+document.getElementById('btnSummary').onclick = function(){
+  const missing = completeAll();
+  if (missing.length) {
+    document.getElementById('summaryBox').innerHTML =
+      '<div class="result show warn">Не подсчитаны: '+esc(missing.join('; '))+'</div>';
+    return;
+  }
+  const name = document.getElementById('pname').value || '(без имени)';
+  const rows = [
+    ['ASRS (СДВГ)','asrs'],
+    ['WURS-25 (детство)','wurs'],
+    ['MDQ (биполярный спектр)','mdq'],
+    ['HCL-32 (гипомания)','hcl'],
+    ['PHQ-9 (депрессия)','phq'],
+    ['PDI-21 (бредовая настроенность)','pdi']
+  ];
+  let t = '<table><tr><th>Шкала</th><th>Результат</th></tr>';
+  rows.forEach(r=>{ t+='<tr><td>'+r[0]+'</td><td>'+esc(RES[r[1]].text)+'</td></tr>'; });
+  t += '</table>';
+
+  const adhd = RES.asrs.cls==='warn' && RES.wurs.cls==='warn';
+  const aff  = RES.mdq.cls==='warn' || RES.hcl.cls==='warn';
+  const dep  = RES.phq.cls!=='ok';
+  const del  = RES.pdi.cls!=='ok';
+  let profile;
+  if (!adhd && !aff && !dep && !del) profile='Все шесть шкал ниже порогов. Скрининг отрицательный — оснований для углублённой оценки по этой батарее нет.';
+  else {
+    const lines=[];
+    if (adhd) lines.push('СДВГ-линия');
+    if (aff) lines.push('аффективная линия');
+    if (dep) lines.push('депрессивная линия');
+    if (del) lines.push('линия бредовой настроенности');
+    let p;
+    if (lines.length===1) p = lines[0];
+    else p = 'смешанный сигнал: '+lines.join(' + ');
+    profile = 'Профиль: <b>'+p+'</b>. ';
+    if (aff && adhd) profile += 'При сочетании аффективной и СДВГ-линий приоритет у оценки биполярного спектра: стимуляторы при недиагностированной биполярности могут ухудшить картину.';
+    else if (aff) profile += 'Приоритет — оценка аффективного спекттра (MDQ/HCL-32), далее — консультация психиатра.';
+    else if (adhd) profile += 'Следующий шаг — структурированное интервью DIVA-5 и очная консультация психиатра.';
+    else if (dep) profile += 'Следующий шаг — консультация по поводу депрессивной симптоматики (особенно при отмеченном пункте 9 PHQ-9).';
+    else if (del) profile += 'Результат PDI следует интерпретировать в контексте: значимых порогов нет, важно содержание и контекст переживания.';
+    else profile += 'Рекомендуется очная оценка специалиста по совокупности результатов.';
+  }
+  document.getElementById('summaryBox').innerHTML =
+    '<div class="profile"><b>Участник: '+esc(name)+'</b><br>'+t+'<br>'+profile+'</div>';
+  buildCopyText(name, profile);
+};
+
+function buildCopyText(name, profile){
+  let txt = 'Скрин��нговая батарея — '+(name||'(без имени)')+'\n';
+  ['asrs','wurs','mdq','hcl','phq','pdi'].forEach(id=>{
+    txt += DATA[id].title.replace(/^\d+\.\s*/,'') + ': ' + RES[id].text + '\n';
+  });
+  txt += profile.replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim()+'\n';
+  txt += 'Скрининг не является диагнозом.';
+  const ta = document.getElementById('copyArea');
+  ta.value = txt; ta.style.display='block';
+  return txt;
+}
+
+document.getElementById('btnCopy').onclick = function(){
+  if (!RES.asrs || !RES.wurs || !RES.mdq || !RES.hcl || !RES.phq || !RES.pdi){
+    return alert('Сначала подсчитайте все шесть шкал.');
+  }
+  const name = document.getElementById('pname').value;
+  const prof = document.querySelector('.profile') ? document.querySelector('.profile').innerText.split('\n').pop() : '';
+  const txt = buildCopyText(name, prof);
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(
+      ()=>alert('Скопировано в буфер обмена.'),
+      ()=>alert('Буфер недоступен для локального файла — текст показан ниже, скопируйте его вручную.')
+    );
+  } else {
+    alert('Буфер недоступен для локального файла — текст показан ниже, скопируйте его вручную.');
+  }
+};
+
+build();
+</script>
+</body>
+</html>
